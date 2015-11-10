@@ -52,7 +52,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="DoubleKeyDictionaryTests.cs" />
-    <Compile Include="LoadTests.cs" />
+    <Compile Include="LoadAndConcurrencyTests.cs" />
     <Compile Include="Person.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

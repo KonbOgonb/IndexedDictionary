@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace IndexedDictionary
 {
     /// <summary>
-    /// Just a sample, haw indexedDictionary could be used
+    /// Collection for the solution of the task. Example of how indexedDictionary could be used
     /// </summary>
     /// <typeparam name="TId"></typeparam>
     /// <typeparam name="TName"></typeparam>
@@ -29,13 +29,7 @@ namespace IndexedDictionary
         {
             get
             {
-                if (UseIndices)
-                {
-                    // fast solution to get data by single key element
-                    return idIndex.IndexDict[id].Select(key => this[key]);
-                }
-                // slow solution in case we disable indiced
-                return Keys.Where(key => key.Item1.Equals(id)).Select(key => this[key]);
+                return GetByIndex(idIndex, id);
             }
         }
 
@@ -43,13 +37,21 @@ namespace IndexedDictionary
         {
             get
             {
+                return GetByIndex(nameIndex, name);
+            }
+        }
+
+        IEnumerable<TValue> GetByIndex<TIndex>(IndexHelper indexHelper, TIndex value)
+        {
+            lock (SyncRoot)
+            {
                 if (UseIndices)
                 {
                     // fast solution to get data by single key element
-                    return nameIndex.IndexDict[name].Select(key => this[key]);
+                    return indexHelper.IndexDict[value].Select(key => this[key]);
                 }
                 // slow solution in case we disable indiced
-                return Keys.Where(key => key.Item2.Equals(name)).Select(key => this[key]);
+                return innerDict.Keys.Where(key => key.Item2.Equals(value)).Select(key => innerDict[key]);
             }
         }
     }

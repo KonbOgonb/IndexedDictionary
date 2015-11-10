@@ -42,11 +42,14 @@ namespace IndexedDictionary
             }
         }
 
-        protected void Rebuiltindices()
+        private void Rebuiltindices()
         {
-            foreach (var pair in innerDict)
+            lock (SyncRoot)
             {
-                AddToIndices(pair.Key, pair.Value);
+                foreach (var pair in innerDict)
+                {
+                    AddToIndices(pair.Key, pair.Value);
+                }
             }
         }
 
@@ -102,19 +105,26 @@ namespace IndexedDictionary
         #endregion
         #region IDict
         //primary internal collection
-        Dictionary<TKey, TValue> innerDict { get; set; } = new Dictionary<TKey, TValue>();
+        //Need to be protected for locking in derived class =(
+        protected Dictionary<TKey, TValue> innerDict { get; set; } = new Dictionary<TKey, TValue>();
 
         public TValue this[TKey key]
         {
             get
             {
-                return innerDict[key];
+                lock (SyncRoot)
+                {
+                    return innerDict[key];
+                }
             }
 
             set
             {
-                innerDict[key] = value;
-                AddToIndices(key, value);                
+                lock (SyncRoot)
+                {
+                    innerDict[key] = value;
+                    AddToIndices(key, value);
+                }            
             }
         }
 
@@ -122,7 +132,10 @@ namespace IndexedDictionary
         {
             get
             {
-                return innerDict.Keys;
+                lock (SyncRoot)
+                {
+                    return innerDict.Keys;
+                }
             }
         }
 
@@ -130,7 +143,10 @@ namespace IndexedDictionary
         {
             get
             {
-                return innerDict.Values;
+                lock (SyncRoot)
+                {
+                    return innerDict.Values;
+                }
             }
         }
 
@@ -138,7 +154,10 @@ namespace IndexedDictionary
         {
             get
             {
-                return innerDict.Count;
+                lock (SyncRoot)
+                {
+                    return innerDict.Count;
+                }
             }
         }
 
@@ -150,18 +169,27 @@ namespace IndexedDictionary
 
         public void Clear()
         {
-            innerDict.Clear();
-            ClearIndices();
+            lock (SyncRoot)
+            {
+                innerDict.Clear();
+                ClearIndices();
+            }
         }
 
         public bool Contains(KeyValuePair<TKey, TValue> item)
         {
-            return innerDict.Contains(item);
+            lock (SyncRoot)
+            {
+                return innerDict.Contains(item);
+            }
         }
 
         public bool ContainsKey(TKey key)
         {
-            return innerDict.ContainsKey(key);
+            lock (SyncRoot)
+            {
+                return innerDict.ContainsKey(key);
+            }
         }
 
         public bool Remove(KeyValuePair<TKey, TValue> item)
@@ -171,22 +199,28 @@ namespace IndexedDictionary
 
         public bool Remove(TKey key)
         {
-            TValue value;
-            bool result = false;
-            if (innerDict.TryGetValue(key, out value))
+            lock (SyncRoot)
             {
-                result = innerDict.Remove(key);
-                if (result)
+                TValue value;
+                bool result = false;
+                if (innerDict.TryGetValue(key, out value))
                 {
-                    RemoveFromIndices(key, value);
+                    result = innerDict.Remove(key);
+                    if (result)
+                    {
+                        RemoveFromIndices(key, value);
+                    }
                 }
+                return result;
             }
-            return result;
         }
 
         public bool TryGetValue(TKey key, out TValue value)
         {
-            return innerDict.TryGetValue(key, out value);
+            lock (SyncRoot)
+            {
+                return innerDict.TryGetValue(key, out value);
+            }
         }
         #endregion
         #region ICollection
@@ -204,7 +238,10 @@ namespace IndexedDictionary
         }
         void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
-            (innerDict as ICollection).CopyTo(array, arrayIndex);
+            lock (SyncRoot)
+            {
+                (innerDict as ICollection).CopyTo(array, arrayIndex);
+            }
         }
 
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
@@ -218,5 +255,6 @@ namespace IndexedDictionary
         }
 
         #endregion
+        protected object SyncRoot = new object();
     }
 }
