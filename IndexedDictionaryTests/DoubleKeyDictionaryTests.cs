@@ -3,40 +3,14 @@ using IndexedDictionary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using IndexedDictionaryTests;
 
 namespace IndexedDictionary.Tests
 {
     [TestClass()]
     public class DoubleKeyDictionaryTests
     {
-        public class Person
-        {
-            public class MyId : IEquatable<MyId>
-            {
-                public int Grade { get; set; }
-                public Guid Guid { get; set; }
-
-                public bool Equals(MyId other)
-                {
-                    return Guid.Equals(other.Guid) && Grade.Equals(other.Grade);
-                }
-
-                public override bool Equals(object obj)
-                {
-                    return Equals(obj as MyId);
-                }
-
-                public override int GetHashCode()
-                {
-                    return 17 * Grade.GetHashCode() + 23 * Guid.GetHashCode();
-                }
-            }
-            public MyId Id { get; set; }    
-            public string Name { get; set; }
-        }
-
         Person firstPerson = new Person { Id = new Person.MyId { Grade = 1, Guid = new Guid("c5b6797a-217b-4628-9859-1821da5d67c4") }, Name = "Vasya" };
         Person secondPerson = new Person { Id = new Person.MyId { Grade = 2, Guid = new Guid("c5b6797a-217b-4628-9859-1821da5d67c4") }, Name = "Vasya" };
         Person thirdPerson = new Person { Id = new Person.MyId { Grade = 2, Guid = new Guid("c5b6797a-217b-4628-9859-1821da5d67c4") }, Name = "Petya" };
@@ -49,7 +23,7 @@ namespace IndexedDictionary.Tests
             {
                 firstPerson, secondPerson, thirdPerson,fourthPerson
             };
-            var dictionary = new DoubleKeyDictionary<Person.MyId, string, Person>();
+            var dictionary = new CompositeKeyDictionary<Person.MyId, string, Person>();
             personsData.ForEach(p => dictionary.Add(new Tuple<Person.MyId, string>(p.Id, p.Name), p));
             var xs = dictionary[secondPerson.Id];
 
@@ -69,7 +43,7 @@ namespace IndexedDictionary.Tests
             {
                 firstPerson, secondPerson, thirdPerson,fourthPerson
             };
-            var dictionary = new DoubleKeyDictionary<Person.MyId, string, Person>();
+            var dictionary = new CompositeKeyDictionary<Person.MyId, string, Person>();
             personsData.ForEach(p => dictionary.Add(new Tuple<Person.MyId, string>(p.Id, p.Name), p));
             var xs = dictionary["Vasya"];
 
@@ -80,6 +54,25 @@ namespace IndexedDictionary.Tests
             xs = dictionary["Vasya"];
             Assert.IsTrue(xs.First().Id.Equals(firstPerson.Id));
             Assert.AreEqual(xs.Count(), 1);
+        }
+
+        [TestMethod()]
+        public void TestTurnIndicesOffIndex()
+        {
+            List<Person> personsData = new List<Person>()
+            {
+                firstPerson, secondPerson, thirdPerson,fourthPerson
+            };
+            var dictionary = new CompositeKeyDictionary<Person.MyId, string, Person>();
+            dictionary.UseIndices = false;
+
+            personsData.ForEach(p => dictionary.Add(new Tuple<Person.MyId, string>(p.Id, p.Name), p));
+            dictionary.UseIndices = true;
+
+            var xs = dictionary["Vasya"];
+
+            Assert.IsTrue(xs.First().Name == xs.Last().Name);
+            Assert.AreEqual(xs.Count(), 2);
         }
     }
 }

@@ -19,26 +19,26 @@ namespace IndexedDictionary
         protected class IndexHelper
         {
             public Func<TKey, TValue, object> IndexSelector;
-            public Dictionary<object, List<TKey>> IndexDict;
+            public Dictionary<object, HashSet<TKey>> IndexDict;
         }
         protected List<IndexHelper> indices = new List<IndexHelper>();
-        bool useindices = true;
+        bool useIndices = true;
         /// <summary>
         /// Turning on initiates indices rebuilding.
         /// </summary>
-        public bool Useindices
+        public bool UseIndices
         {
             get
             {
-                return useindices;
+                return useIndices;
             }
             set
             {
-                if (value && !useindices)
+                useIndices = value;
+                if (value)
                 {
                     Rebuiltindices();
                 }
-                useindices = value;
             }
         }
 
@@ -46,7 +46,7 @@ namespace IndexedDictionary
         {
             foreach (var pair in innerDict)
             {
-                AddToindices(pair.Key, pair.Value);
+                AddToIndices(pair.Key, pair.Value);
             }
         }
 
@@ -54,28 +54,37 @@ namespace IndexedDictionary
         /// Provide projection from TKey and TValue to desired index
         /// </summary>
         /// <param name="indexSelector">provide projection from TKey,TValue to index</param>
-        protected IndexHelper AddIndex(Func<TKey, TValue, object> indexSelector)
+        protected IndexHelper CreateIndex(Func<TKey, TValue, object> indexSelector)
         {
-            var index = new IndexHelper { IndexSelector = indexSelector, IndexDict = new Dictionary<object, List<TKey>>() };
+            var index = new IndexHelper { IndexSelector = indexSelector, IndexDict = new Dictionary<object, HashSet<TKey>>() };
             indices.Add(index);
             return index;
         }
 
-        private void AddToindices(TKey key, TValue value)
+        private void AddToIndices(TKey key, TValue value)
         {
+            if (!UseIndices)
+            {
+                return;
+            }
+
             foreach (var index in indices)
             {
                 var indexValue = index.IndexSelector(key, value);
                 if (!index.IndexDict.ContainsKey(indexValue))
                 {
-                    index.IndexDict[indexValue] = new List<TKey>();
+                    index.IndexDict[indexValue] = new HashSet<TKey>();
                 }
                 index.IndexDict[indexValue].Add(key);
             }
         }
 
-        private void RemoveFromindices(TKey key, TValue value)
+        private void RemoveFromIndices(TKey key, TValue value)
         {
+            if (!UseIndices)
+            {
+                return;
+            }
             foreach (var index in indices)
             {
                 var indexValue = index.IndexSelector(key, value);
@@ -83,7 +92,7 @@ namespace IndexedDictionary
             }
         }
 
-        private void Clearindices()
+        private void ClearIndices()
         {
             foreach (var index in indices)
             {
@@ -105,10 +114,7 @@ namespace IndexedDictionary
             set
             {
                 innerDict[key] = value;
-                if (Useindices)
-                {
-                    AddToindices(key, value);
-                }
+                AddToIndices(key, value);                
             }
         }
 
@@ -145,10 +151,7 @@ namespace IndexedDictionary
         public void Clear()
         {
             innerDict.Clear();
-            if (Useindices)
-            {
-                Clearindices();
-            }
+            ClearIndices();
         }
 
         public bool Contains(KeyValuePair<TKey, TValue> item)
@@ -173,9 +176,9 @@ namespace IndexedDictionary
             if (innerDict.TryGetValue(key, out value))
             {
                 result = innerDict.Remove(key);
-                if (Useindices && result)
+                if (result)
                 {
-                    RemoveFromindices(key, value);
+                    RemoveFromIndices(key, value);
                 }
             }
             return result;
